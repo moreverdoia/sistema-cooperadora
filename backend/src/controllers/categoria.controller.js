@@ -1,0 +1,22 @@
+const prisma = require('../config/prisma');
+
+const obtenerCategorias = async (req, res) => {
+  try {
+    const categorias = await prisma.categoria.findMany({
+      orderBy: {
+        nombre: 'asc',
+      },
+    });
+
+    res.json(categorias);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: 'Error al obtener las categorías',
+    });
+  }
+};
+
+module.exports = {
+  obtenerCategorias,
+};
