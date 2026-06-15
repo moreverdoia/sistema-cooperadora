@@ -52,11 +52,11 @@ const crearMovimiento = async (req, res) => {
   try {
     const { tipo, fecha, monto, descripcion, categoriaId } = req.body;
 
-    if (!tipo || !fecha || !monto || !descripcion || !categoriaId) {
-      return res.status(400).json({
-        message: 'Todos los campos son obligatorios',
-      });
-    }
+  if (!tipo || !fecha || !monto || !categoriaId) {
+    return res.status(400).json({
+      message: 'El tipo, la fecha, el monto y la categoría son obligatorios',
+    });
+  }
 
     if (tipo !== 'INGRESO' && tipo !== 'EGRESO') {
       return res.status(400).json({
@@ -93,7 +93,7 @@ const crearMovimiento = async (req, res) => {
         tipo,
         fecha: new Date(fecha),
         monto,
-        descripcion,
+        descripcion: descripcion || '',
         categoriaId: Number(categoriaId),
       },
       include: {
@@ -127,9 +127,9 @@ const actualizarMovimiento = async (req, res) => {
       });
     }
 
-    if (!tipo || !fecha || !monto || !descripcion || !categoriaId) {
+    if (!tipo || !fecha || !monto || !categoriaId) {
       return res.status(400).json({
-        message: 'Todos los campos son obligatorios',
+        message: 'El tipo, la fecha, el monto y la categoría son obligatorios',
       });
     }
 
@@ -171,7 +171,7 @@ const actualizarMovimiento = async (req, res) => {
         tipo,
         fecha: new Date(fecha),
         monto,
-        descripcion,
+        descripcion: descripcion || '',
         categoriaId: Number(categoriaId),
       },
       include: {
