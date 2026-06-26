@@ -35,6 +35,58 @@ model Movimiento {
   updatedAt   DateTime       @updatedAt
 }
 
+model Curso {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @unique
+  alumnos   Alumno[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Alumno {
+  id         Int         @id @default(autoincrement())
+  dni        String      @unique
+  nombre     String
+  apellido   String
+  cursoId    Int
+  curso      Curso       @relation(fields: [cursoId], references: [id])
+  pagosCuota PagoCuota[]
+
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Cuota {
+  id            Int         @id @default(autoincrement())
+  nombre        String
+  mes           Int
+  anio          Int
+  montoEsperado Decimal     @db.Decimal(12, 2)
+  pagos         PagoCuota[]
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([mes, anio])
+}
+
+model PagoCuota {
+  id          Int      @id @default(autoincrement())
+  alumnoId    Int
+  alumno      Alumno   @relation(fields: [alumnoId], references: [id])
+  cuotaId     Int
+  cuota       Cuota    @relation(fields: [cuotaId], references: [id])
+  fecha       DateTime
+  monto       Decimal  @db.Decimal(12, 2)
+  observacion String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([alumnoId, cuotaId])
+}
+
 enum TipoMovimiento {
   INGRESO
   EGRESO

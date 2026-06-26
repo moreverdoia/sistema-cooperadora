@@ -1,13 +1,26 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 
-const formatearMoneda = (valor) => {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 2,
-  }).format(valor);
-};
+import Header from './components/Header';
+import Mensaje from './components/Mensaje';
+import ResumenFinanciero from './components/ResumenFinanciero';
+import MovimientoForm from './components/MovimientoForm';
+import PagoCuotaForm from './components/PagoCuotaForm';
+import BuscarAlumno from './components/BuscarAlumno';
+import EstadoCurso from './components/EstadoCurso';
+
+import {
+  crearMovimiento,
+  crearPagoCuota,
+  obtenerCategorias,
+  obtenerCursos,
+  obtenerCuotas,
+  obtenerEstadoCurso,
+  obtenerPerfilAlumnoPorDni,
+  obtenerResumen,
+} from './services/api';
+
+import { formatearMoneda } from './utils/formatters';
 
 const fechaActual = new Date().toISOString().slice(0, 10);
 
@@ -19,46 +32,66 @@ function App() {
   });
 
   const [categorias, setCategorias] = useState([]);
+  const [cuotas, setCuotas] = useState([]);
+  const [cursos, setCursos] = useState([]);
+
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [guardandoPagoCuota, setGuardandoPagoCuota] = useState(false);
+  const [buscandoAlumno, setBuscandoAlumno] = useState(false);
+  const [consultandoCurso, setConsultandoCurso] = useState(false);
+
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
 
-  const [formIngreso, setFormIngreso] = useState({
+  const [dniBusqueda, setDniBusqueda] = useState('');
+  const [perfilAlumno, setPerfilAlumno] = useState(null);
+  const [estadoCurso, setEstadoCurso] = useState(null);
+
+  const [formMovimiento, setFormMovimiento] = useState({
+    tipo: 'INGRESO',
     fecha: fechaActual,
     monto: '',
     descripcion: '',
     categoriaId: '',
   });
 
-  const categoriasIngreso = categorias.filter((categoria) => categoria.tipo === 'INGRESO');
+  const [formPagoCuota, setFormPagoCuota] = useState({
+    dni: '',
+    cuotaId: '',
+    fecha: fechaActual,
+    monto: '',
+    observacion: '',
+  });
 
-  const obtenerResumen = async () => {
-    const respuesta = await fetch('http://localhost:3000/api/movimientos/resumen');
+  const [formEstadoCurso, setFormEstadoCurso] = useState({
+    cursoId: '',
+    cuotaId: '',
+  });
 
-    if (!respuesta.ok) {
-      throw new Error('No se pudo obtener el resumen financiero');
-    }
-
-    const datos = await respuesta.json();
-    setResumen(datos);
-  };
-
-  const obtenerCategorias = async () => {
-    const respuesta = await fetch('http://localhost:3000/api/categorias');
-
-    if (!respuesta.ok) {
-      throw new Error('No se pudieron obtener las categorías');
-    }
-
-    const datos = await respuesta.json();
-    setCategorias(datos);
-  };
+  const categoriasFiltradas = categorias.filter(
+    (categoria) => categoria.tipo === formMovimiento.tipo
+  );
 
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        await Promise.all([obtenerResumen(), obtenerCategorias()]);
+        const [
+          resumenDatos,
+          categoriasDatos,
+          cuotasDatos,
+          cursosDatos,
+        ] = await Promise.all([
+          obtenerResumen(),
+          obtenerCategorias(),
+          obtenerCuotas(),
+          obtenerCursos(),
+        ]);
+
+        setResumen(resumenDatos);
+        setCategorias(categoriasDatos);
+        setCuotas(cuotasDatos);
+        setCursos(cursosDatos);
       } catch (error) {
         setError(error.message);
       } finally {
@@ -69,27 +102,40 @@ function App() {
     cargarDatos();
   }, []);
 
-  const manejarCambioIngreso = (event) => {
+  const manejarCambioMovimiento = (event) => {
     const { name, value } = event.target;
 
-    setFormIngreso({
-      ...formIngreso,
-      [name]: value,
+    setFormMovimiento((formActual) => {
+      const nuevoForm = {
+        ...formActual,
+        [name]: value,
+      };
+
+      if (name === 'tipo') {
+        nuevoForm.categoriaId = '';
+      }
+
+      return nuevoForm;
     });
   };
 
-  const registrarIngreso = async (event) => {
+  const registrarMovimiento = async (event) => {
     event.preventDefault();
 
     setError('');
     setMensaje('');
 
-    if (!formIngreso.fecha || !formIngreso.monto || !formIngreso.categoriaId) {
-      setError('Completá la fecha, el monto y la categoría');
+    if (
+      !formMovimiento.tipo ||
+      !formMovimiento.fecha ||
+      !formMovimiento.monto ||
+      !formMovimiento.categoriaId
+    ) {
+      setError('Completá el tipo, la fecha, el monto y la categoría');
       return;
     }
 
-    if (Number(formIngreso.monto) <= 0) {
+    if (Number(formMovimiento.monto) <= 0) {
       setError('El monto debe ser mayor a cero');
       return;
     }
@@ -97,36 +143,30 @@ function App() {
     try {
       setGuardando(true);
 
-      const respuesta = await fetch('http://localhost:3000/api/movimientos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tipo: 'INGRESO',
-          fecha: formIngreso.fecha,
-          monto: Number(formIngreso.monto),
-          descripcion: formIngreso.descripcion.trim(),
-          categoriaId: Number(formIngreso.categoriaId),
-        }),
+      await crearMovimiento({
+        tipo: formMovimiento.tipo,
+        fecha: formMovimiento.fecha,
+        monto: Number(formMovimiento.monto),
+        descripcion: formMovimiento.descripcion.trim(),
+        categoriaId: Number(formMovimiento.categoriaId),
       });
 
-      const datos = await respuesta.json();
+      setMensaje(
+        formMovimiento.tipo === 'INGRESO'
+          ? 'Ingreso registrado correctamente'
+          : 'Egreso registrado correctamente'
+      );
 
-      if (!respuesta.ok) {
-        throw new Error(datos.message || 'No se pudo registrar el ingreso');
-      }
-
-      setMensaje('Ingreso registrado correctamente');
-
-      setFormIngreso({
+      setFormMovimiento({
+        tipo: formMovimiento.tipo,
         fecha: fechaActual,
         monto: '',
         descripcion: '',
         categoriaId: '',
       });
 
-      await obtenerResumen();
+      const resumenActualizado = await obtenerResumen();
+      setResumen(resumenActualizado);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -134,143 +174,201 @@ function App() {
     }
   };
 
+  const manejarCambioPagoCuota = (event) => {
+    const { name, value } = event.target;
+
+    setFormPagoCuota({
+      ...formPagoCuota,
+      [name]: value,
+    });
+  };
+
+  const registrarPagoCuota = async (event) => {
+    event.preventDefault();
+
+    setError('');
+    setMensaje('');
+
+    if (
+      !formPagoCuota.dni ||
+      !formPagoCuota.cuotaId ||
+      !formPagoCuota.fecha ||
+      !formPagoCuota.monto
+    ) {
+      setError('Completá DNI, cuota, fecha y monto');
+      return;
+    }
+
+    if (Number(formPagoCuota.monto) <= 0) {
+      setError('El monto debe ser mayor a cero');
+      return;
+    }
+
+    try {
+      setGuardandoPagoCuota(true);
+
+      await crearPagoCuota({
+        dni: formPagoCuota.dni.trim(),
+        cuotaId: Number(formPagoCuota.cuotaId),
+        fecha: formPagoCuota.fecha,
+        monto: Number(formPagoCuota.monto),
+        observacion: formPagoCuota.observacion.trim(),
+      });
+
+      const dniPagado = formPagoCuota.dni.trim();
+
+      setMensaje('Pago de cuota registrado correctamente');
+
+      setFormPagoCuota({
+        dni: '',
+        cuotaId: '',
+        fecha: fechaActual,
+        monto: '',
+        observacion: '',
+      });
+
+      const resumenActualizado = await obtenerResumen();
+      setResumen(resumenActualizado);
+
+      if (dniBusqueda.trim() === dniPagado) {
+        const perfilDatos = await obtenerPerfilAlumnoPorDni(dniPagado);
+        setPerfilAlumno(perfilDatos);
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setGuardandoPagoCuota(false);
+    }
+  };
+
+  const buscarPerfilAlumno = async (event) => {
+    event.preventDefault();
+
+    setError('');
+    setMensaje('');
+    setPerfilAlumno(null);
+
+    if (!dniBusqueda.trim()) {
+      setError('Ingresá un DNI para buscar');
+      return;
+    }
+
+    try {
+      setBuscandoAlumno(true);
+
+      const datos = await obtenerPerfilAlumnoPorDni(dniBusqueda.trim());
+      setPerfilAlumno(datos);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setBuscandoAlumno(false);
+    }
+  };
+
+  const manejarCambioEstadoCurso = (event) => {
+    const { name, value } = event.target;
+
+    setFormEstadoCurso({
+      ...formEstadoCurso,
+      [name]: value,
+    });
+  };
+
+  const consultarEstadoCurso = async (event) => {
+    event.preventDefault();
+
+    setError('');
+    setMensaje('');
+    setEstadoCurso(null);
+
+    if (!formEstadoCurso.cursoId || !formEstadoCurso.cuotaId) {
+      setError('Seleccioná un curso y una cuota');
+      return;
+    }
+
+    try {
+      setConsultandoCurso(true);
+
+      const datos = await obtenerEstadoCurso(
+        formEstadoCurso.cursoId,
+        formEstadoCurso.cuotaId
+      );
+
+      setEstadoCurso(datos);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setConsultandoCurso(false);
+    }
+  };
+
   return (
     <main className="app">
       <section className="dashboard">
-        <header className="encabezado">
-          <div>
-            <p className="eyebrow">Cooperadora escolar</p>
-            <h1>Gestión financiera</h1>
-            <p className="descripcion">
-              Resumen general de ingresos, egresos y saldo disponible.
-            </p>
-          </div>
-
-          <div className="estado-sistema">
-            <span className="punto"></span>
-            API conectada
-          </div>
-        </header>
+        <Header />
 
         {cargando && (
-          <section className="mensaje">
+          <Mensaje>
             <div className="spinner"></div>
             <p>Cargando información...</p>
-          </section>
+          </Mensaje>
         )}
 
         {error && (
-          <section className="mensaje error">
+          <Mensaje tipo="error">
             <p>{error}</p>
-          </section>
+          </Mensaje>
         )}
 
         {mensaje && (
-          <section className="mensaje exito">
+          <Mensaje tipo="exito">
             <p>{mensaje}</p>
-          </section>
+          </Mensaje>
         )}
 
         {!cargando && (
           <>
-            <section className="saldo-principal">
-              <span>Saldo actual</span>
-              <strong>{formatearMoneda(resumen.saldo)}</strong>
-              <p>
-                Resultado de restar los egresos registrados a los ingresos cargados.
-              </p>
-            </section>
+            <ResumenFinanciero
+              resumen={resumen}
+              formatearMoneda={formatearMoneda}
+            />
 
-            <section className="resumen-grid">
-              <article className="card">
-                <div className="card-header">
-                  <span className="icono ingreso"></span>
-                  <p>Ingresos</p>
-                </div>
-                <strong>{formatearMoneda(resumen.totalIngresos)}</strong>
-              </article>
+            <MovimientoForm
+              formMovimiento={formMovimiento}
+              categoriasFiltradas={categoriasFiltradas}
+              guardando={guardando}
+              manejarCambioMovimiento={manejarCambioMovimiento}
+              registrarMovimiento={registrarMovimiento}
+            />
 
-              <article className="card">
-                <div className="card-header">
-                  <span className="icono egreso"></span>
-                  <p>Egresos</p>
-                </div>
-                <strong>{formatearMoneda(resumen.totalEgresos)}</strong>
-              </article>
+            <PagoCuotaForm
+              cuotas={cuotas}
+              formPagoCuota={formPagoCuota}
+              guardandoPagoCuota={guardandoPagoCuota}
+              manejarCambioPagoCuota={manejarCambioPagoCuota}
+              registrarPagoCuota={registrarPagoCuota}
+              formatearMoneda={formatearMoneda}
+            />
 
-              <article className="card">
-                <div className="card-header">
-                  <span className="icono saldo"></span>
-                  <p>Balance</p>
-                </div>
-                <strong>{resumen.saldo >= 0 ? 'Positivo' : 'Negativo'}</strong>
-              </article>
-            </section>
+            <BuscarAlumno
+              dniBusqueda={dniBusqueda}
+              setDniBusqueda={setDniBusqueda}
+              perfilAlumno={perfilAlumno}
+              buscandoAlumno={buscandoAlumno}
+              buscarPerfilAlumno={buscarPerfilAlumno}
+              formatearMoneda={formatearMoneda}
+            />
 
-            <section className="form-panel">
-              <div className="form-header">
-                <div>
-                  <p className="eyebrow">Nuevo movimiento</p>
-                  <h2>Registrar ingreso</h2>
-                </div>
-              </div>
-
-              <form onSubmit={registrarIngreso} className="formulario">
-                <label>
-                  Fecha
-                  <input
-                    type="date"
-                    name="fecha"
-                    value={formIngreso.fecha}
-                    onChange={manejarCambioIngreso}
-                  />
-                </label>
-
-                <label>
-                  Monto
-                  <input
-                    type="number"
-                    name="monto"
-                    min="0"
-                    step="0.01"
-                    placeholder="Ej: 15000"
-                    value={formIngreso.monto}
-                    onChange={manejarCambioIngreso}
-                  />
-                </label>
-
-                <label>
-                  Categoría
-                  <select
-                    name="categoriaId"
-                    value={formIngreso.categoriaId}
-                    onChange={manejarCambioIngreso}
-                  >
-                    <option value="">Seleccionar categoría</option>
-                    {categoriasIngreso.map((categoria) => (
-                      <option key={categoria.id} value={categoria.id}>
-                        {categoria.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="campo-completo">
-                  Descripción
-                  <input
-                    type="text"
-                    name="descripcion"
-                    placeholder="Ej: Pago de cuota mensual"
-                    value={formIngreso.descripcion}
-                    onChange={manejarCambioIngreso}
-                  />
-                </label>
-
-                <button type="submit" disabled={guardando}>
-                  {guardando ? 'Guardando...' : 'Registrar ingreso'}
-                </button>
-              </form>
-            </section>
+            <EstadoCurso
+              cursos={cursos}
+              cuotas={cuotas}
+              formEstadoCurso={formEstadoCurso}
+              estadoCurso={estadoCurso}
+              consultandoCurso={consultandoCurso}
+              manejarCambioEstadoCurso={manejarCambioEstadoCurso}
+              consultarEstadoCurso={consultarEstadoCurso}
+              formatearMoneda={formatearMoneda}
+            />
           </>
         )}
       </section>
