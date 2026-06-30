@@ -23,6 +23,41 @@ app.use('/api/alumnos', alumnoRoutes);
 app.use('/api/cuotas', cuotaRoutes);
 app.use('/api/pagos-cuotas', pagoCuotaRoutes);
 
+const usuarios = [
+  {
+    username: 'preceptor',
+    password: '1234',
+    rol: 'preceptor',
+  },
+  {
+    username: 'cooperadora',
+    password: '1234',
+    rol: 'cooperadora',
+  },
+];
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+
+  const usuario = usuarios.find(
+    (u) =>
+      u.username === username &&
+      u.password === password
+  );
+
+  if (!usuario) {
+    return res.status(401).json({
+      error: 'Usuario o contraseña incorrectos',
+    });
+  }
+
+  res.json({
+    username: usuario.username,
+    rol: usuario.rol,
+  });
+});
+
+
 app.get('/', (req, res) => {
   res.json({
     message: 'API del sistema de cooperadora funcionando correctamente',

@@ -8,6 +8,7 @@ import MovimientoForm from './components/MovimientoForm';
 import PagoCuotaForm from './components/PagoCuotaForm';
 import BuscarAlumno from './components/BuscarAlumno';
 import EstadoCurso from './components/EstadoCurso';
+import Login from './components/Login';
 
 import {
   buscarAlumnos,
@@ -70,6 +71,12 @@ function App() {
     cursoId: '',
     cuotaId: '',
   });
+
+  const [usuario, setUsuario] = useState(null);
+
+  const cerrarSesion = () => {
+    setUsuario(null);
+  };
 
   const categoriasFiltradas = categorias.filter(
     (categoria) => categoria.tipo === formMovimiento.tipo
@@ -326,54 +333,45 @@ function App() {
     }
   };
 
+  if (!usuario) {
+    return <Login onLogin={setUsuario} />;
+  }
+
   return (
-    <main className="app">
-      <section className="dashboard">
-        <Header />
+    <div className="app">
+      <Header />
 
-        {cargando && (
-          <Mensaje>
-            <div className="spinner"></div>
-            <p>Cargando información...</p>
-          </Mensaje>
-        )}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          marginBottom: 20,
+        }}
+      >
+        <span>
+          Sesión: <strong>{usuario.rol.toUpperCase()}</strong>
+        </span>
 
-        {error && (
-          <Mensaje tipo="error">
-            <p>{error}</p>
-          </Mensaje>
-        )}
+        <button className="logout-btn" onClick={cerrarSesion}>
+          Cerrar sesión
+        </button>
+      </div>
 
-        {mensaje && (
-          <Mensaje tipo="exito">
-            <p>{mensaje}</p>
-          </Mensaje>
-        )}
+      {error && <p className="mensaje error">{error}</p>}
+      {mensaje && <p className="mensaje exito">{mensaje}</p>}
 
-        {!cargando && (
-          <>
+      {cargando ? (
+        <p>Cargando datos...</p>
+      ) : (
+        <>
+          {usuario.rol === 'cooperadora' && (
             <ResumenFinanciero
               resumen={resumen}
               formatearMoneda={formatearMoneda}
             />
+          )}
 
-            <MovimientoForm
-              formMovimiento={formMovimiento}
-              categoriasFiltradas={categoriasFiltradas}
-              guardando={guardando}
-              manejarCambioMovimiento={manejarCambioMovimiento}
-              registrarMovimiento={registrarMovimiento}
-            />
-
-            <PagoCuotaForm
-              cuotas={cuotas}
-              formPagoCuota={formPagoCuota}
-              guardandoPagoCuota={guardandoPagoCuota}
-              manejarCambioPagoCuota={manejarCambioPagoCuota}
-              registrarPagoCuota={registrarPagoCuota}
-              formatearMoneda={formatearMoneda}
-            />
-
+          <div className="layout-column">
             <BuscarAlumno
               busquedaAlumno={busquedaAlumno}
               setBusquedaAlumno={setBusquedaAlumno}
@@ -382,6 +380,15 @@ function App() {
               perfilAlumno={perfilAlumno}
               buscandoAlumno={buscandoAlumno}
               buscarPerfilAlumno={buscarAlumnoPorNombre}
+              formatearMoneda={formatearMoneda}
+            />
+
+            <PagoCuotaForm
+              cuotas={cuotas}
+              formPagoCuota={formPagoCuota}
+              guardandoPagoCuota={guardandoPagoCuota}
+              manejarCambioPagoCuota={manejarCambioPagoCuota}
+              registrarPagoCuota={registrarPagoCuota}
               formatearMoneda={formatearMoneda}
             />
 
@@ -395,11 +402,22 @@ function App() {
               consultarEstadoCurso={consultarEstadoCurso}
               formatearMoneda={formatearMoneda}
             />
-          </>
-        )}
-      </section>
-    </main>
+
+            {usuario.rol === 'cooperadora' && (
+              <MovimientoForm
+                formMovimiento={formMovimiento}
+                categoriasFiltradas={categoriasFiltradas}
+                guardando={guardando}
+                manejarCambioMovimiento={manejarCambioMovimiento}
+                registrarMovimiento={registrarMovimiento}
+              />
+            )}
+          </div>
+        </>
+      )}
+    </div>
   );
+
 }
 
 export default App;

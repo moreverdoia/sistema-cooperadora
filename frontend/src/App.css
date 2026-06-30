@@ -241,10 +241,10 @@ h1 {
   letter-spacing: 0;
 }
 
-.formulario {
+.login-card .formulario {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 18px;
 }
 
 .formulario label {
@@ -625,4 +625,23 @@ tr:last-child td {
   .graficos-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.layout-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
