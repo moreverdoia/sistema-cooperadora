@@ -47,7 +47,7 @@ function App() {
 
   const [busquedaAlumno, setBusquedaAlumno] = useState('');
   const [resultadosAlumnos, setResultadosAlumnos] = useState([]);
-  const [perfilAlumno, setPerfilAlumno] = useState(null);  const [perfilAlumno, setPerfilAlumno] = useState(null);
+  const [perfilAlumno, setPerfilAlumno] = useState(null);
   const [estadoCurso, setEstadoCurso] = useState(null);
 
   const [formMovimiento, setFormMovimiento] = useState({
@@ -375,11 +375,13 @@ function App() {
             />
 
             <BuscarAlumno
-              dniBusqueda={dniBusqueda}
-              setDniBusqueda={setDniBusqueda}
+              busquedaAlumno={busquedaAlumno}
+              setBusquedaAlumno={setBusquedaAlumno}
+              resultadosAlumnos={resultadosAlumnos}
+              seleccionarAlumno={(alumno) => verPerfilAlumno(alumno.dni)}
               perfilAlumno={perfilAlumno}
               buscandoAlumno={buscandoAlumno}
-              buscarPerfilAlumno={buscarPerfilAlumno}
+              buscarPerfilAlumno={buscarAlumnoPorNombre}
               formatearMoneda={formatearMoneda}
             />
 

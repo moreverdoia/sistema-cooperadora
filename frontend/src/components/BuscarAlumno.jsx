@@ -1,6 +1,8 @@
 function BuscarAlumno({
-  dniBusqueda,
-  setDniBusqueda,
+  busquedaAlumno,
+  setBusquedaAlumno,
+  resultadosAlumnos,
+  seleccionarAlumno,
   perfilAlumno,
   buscandoAlumno,
   buscarPerfilAlumno,
@@ -11,22 +13,37 @@ function BuscarAlumno({
       <div className="form-header">
         <div>
           <p className="eyebrow">Cuotas</p>
-          <h2>Buscar alumno por DNI</h2>
+          <h2>Buscar estudiante</h2>
         </div>
       </div>
 
       <form onSubmit={buscarPerfilAlumno} className="busqueda-dni">
         <input
           type="text"
-          placeholder="Ingresá DNI del alumno"
-          value={dniBusqueda}
-          onChange={(event) => setDniBusqueda(event.target.value)}
+          placeholder="Ingresá nombre o apellido"
+          value={busquedaAlumno}
+          onChange={(e) => setBusquedaAlumno(e.target.value)}
         />
 
         <button type="submit" disabled={buscandoAlumno}>
           {buscandoAlumno ? 'Buscando...' : 'Buscar alumno'}
         </button>
       </form>
+
+      {resultadosAlumnos.length > 0 && (
+        <div className="resultados-alumnos">
+          {resultadosAlumnos.map((alumno) => (
+            <div
+              key={alumno.id}
+              className="resultado-item"
+              onClick={() => seleccionarAlumno(alumno)}
+              style={{ cursor: "pointer", padding: "10px", borderBottom: "1px solid #ccc" }}
+            >
+              {alumno.apellido}, {alumno.nombre} — DNI {alumno.dni}
+            </div>
+          ))}
+        </div>
+      )}
 
       {perfilAlumno && (
         <div className="perfil-alumno">
