@@ -10,6 +10,7 @@ import BuscarAlumno from './components/BuscarAlumno';
 import EstadoCurso from './components/EstadoCurso';
 
 import {
+  buscarAlumnos,
   crearMovimiento,
   crearPagoCuota,
   obtenerCategorias,
@@ -44,8 +45,9 @@ function App() {
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
 
-  const [dniBusqueda, setDniBusqueda] = useState('');
-  const [perfilAlumno, setPerfilAlumno] = useState(null);
+  const [busquedaAlumno, setBusquedaAlumno] = useState('');
+  const [resultadosAlumnos, setResultadosAlumnos] = useState([]);
+  const [perfilAlumno, setPerfilAlumno] = useState(null);  const [perfilAlumno, setPerfilAlumno] = useState(null);
   const [estadoCurso, setEstadoCurso] = useState(null);
 
   const [formMovimiento, setFormMovimiento] = useState({
@@ -230,7 +232,7 @@ function App() {
       const resumenActualizado = await obtenerResumen();
       setResumen(resumenActualizado);
 
-      if (dniBusqueda.trim() === dniPagado) {
+      if (perfilAlumno?.alumno?.dni === dniPagado) {
         const perfilDatos = await obtenerPerfilAlumnoPorDni(dniPagado);
         setPerfilAlumno(perfilDatos);
       }
@@ -241,22 +243,44 @@ function App() {
     }
   };
 
-  const buscarPerfilAlumno = async (event) => {
+  const buscarAlumnoPorNombre = async (event) => {
     event.preventDefault();
 
     setError('');
     setMensaje('');
     setPerfilAlumno(null);
+    setResultadosAlumnos([]);
 
-    if (!dniBusqueda.trim()) {
-      setError('Ingresá un DNI para buscar');
+    if (!busquedaAlumno.trim()) {
+      setError('Ingresá un nombre, apellido o DNI para buscar');
       return;
     }
 
     try {
       setBuscandoAlumno(true);
 
-      const datos = await obtenerPerfilAlumnoPorDni(dniBusqueda.trim());
+      const alumnos = await buscarAlumnos(busquedaAlumno.trim());
+      setResultadosAlumnos(alumnos);
+
+      if (alumnos.length === 0) {
+        setMensaje('No se encontraron alumnos con esa búsqueda');
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setBuscandoAlumno(false);
+    }
+  };
+
+  const verPerfilAlumno = async (dni) => {
+    setError('');
+    setMensaje('');
+    setPerfilAlumno(null);
+
+    try {
+      setBuscandoAlumno(true);
+
+      const datos = await obtenerPerfilAlumnoPorDni(dni);
       setPerfilAlumno(datos);
     } catch (error) {
       setError(error.message);

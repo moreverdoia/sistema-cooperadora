@@ -63,3 +63,8 @@ export const obtenerEstadoCurso = async (cursoId, cuotaId) => {
   const respuesta = await fetch(`${API_URL}/cursos/${cursoId}/cuotas?cuotaId=${cuotaId}`);
   return manejarRespuesta(respuesta, 'No se pudo consultar el estado del curso');
 };
+
+export const buscarAlumnos = async (termino) => {
+  const respuesta = await fetch(`${API_URL}/alumnos/buscar?termino=${encodeURIComponent(termino)}`);
+  return manejarRespuesta(respuesta, 'No se pudieron buscar alumnos');
+};
